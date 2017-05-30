@@ -4,56 +4,56 @@ library(tidyverse)
 
 options(stringsAsFactors = FALSE)
 
+args = commandArgs(trailingOnly = TRUE)
 
-# try & fetch Bokat page
-event_id <- "75460575788069"
-
-html <- tryCatch(
-	read_html(paste("http://www.bokat.se/eventInfoOpen.jsp?eventId", event_id, sep = "=")),
-	error = function(e) e
-)
-
-
-# if successful
-if ("xml_document" %in% class(html)) {
-	# parse HTML
-	status <- html %>% 
-		html_nodes("table.Text[cellspacing='7'] td[align='left'] img") %>% 
-		html_attr("src") %>% 
-		str_match(., "^/images/(.+)\\.png$") %>% 
-		.[,2]
+if (length(args) == 1) {
+	# try & fetch Bokat page
+	event_id <- args[1]
 	
-	name <- html %>% 
-		html_nodes("table.Text[cellspacing='7'] td.TextSmall") %>% 
-		html_text(trim = TRUE) %>% 
-		.[c(TRUE, FALSE)] %>% 
-		str_match(., "^(.+)\\(") %>% 
-		.[,2]
+	html <- tryCatch(
+		read_html(paste("http://www.bokat.se/statPrint.jsp?changeLang=1&eventId", event_id, sep = "=")),
+		error = function(e) e
+	)
 	
-	ts <- html %>% 
-		html_nodes("table.Text[cellspacing='7'] td.TextSmall") %>% 
-		html_text(trim = TRUE) %>% 
-		.[c(TRUE, FALSE)] %>% 
-		str_match(., "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2})") %>% 
-		.[,2]
-	
-	guest <- html %>% 
-		html_nodes("table.Text[cellspacing='7'] td.TextSmall") %>% 
-		html_text(trim = TRUE) %>% 
-		.[c(FALSE, TRUE)]
-	
-	comment <- html %>% 
-		html_nodes("table.Text[cellspacing='7'] textarea") %>% 
-		html_text(trim = TRUE)
-	
-	df_new <- as.tibble(cbind(status, name, ts, guest, comment))
-	
-	# compare to cached data
-	if (file.exists(event_id)) {
-		load(event_id)
+	# if successful
+	if ("xml_document" %in% class(html)) {
+		Bokat <- list()
 		
-		# if differs
-		if (!identical(df, df_new)) {
+		# parse HTML
+		Bokat$tbl <- tibble(
+			status = html %>% 
+				html_nodes("td.TextLarge") %>% 
+				html_text(trim = TRUE),
+		
+			name = html %>% 
+				html_nodes("td.TextSmall[align='left'][width!='50']") %>% 
+				html_text(trim = TRUE) %>% 
+				str_match(., "^([^(]+)") %>% 
+				.[,2],
+		
+			ts = html %>% 
+				html_nodes("td.TextSmall[align='left'][width!='50']") %>% 
+				html_text(trim = TRUE) %>% 
+				str_match(., "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2})") %>% 
+				.[,2],
+				
+			comment = html %>% 
+				html_nodes("td.TextSmall[align!='left']") %>% 
+				html_text(trim = TRUE)
+		)
+		
+		# count players...
+		Bokat$count <- Bokat$tbl %>% filter(status == "Yes!") %>% nrow() +
+			# ... plus guests
+			html %>% 
+				html_nodes("td.TextSmall[align='left'][width='50']") %>% 
+				html_text(trim = TRUE) %>% 
+				as.integer() %>% 
+				sum()
+	
+		# compare to cached data
+		if (file.exists(paste(event_id, "rds", sep = ".")) && !identical(Bokat, readRDS(paste(event_id, "rds", sep = ".")))) {
+			# if differs
 			topic <- readRDS("topic.rds")
 			
 			aws.sns::publish(
@@ -69,9 +69,8 @@ if ("xml_document" %in% class(html)) {
 				)
 			)
 		}
+		
+		# cache
+		saveRDS(Bokat, file = paste(event_id, "rds", sep = "."))
 	}
-	
-	# cache
-	df <- df_new
-	save(df, file = event_id)
 }
