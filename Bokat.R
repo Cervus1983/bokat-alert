@@ -60,12 +60,8 @@ if (length(args) == 1) {
 				topic = topic,
 				message = sprintf(
 					"[%s] %s",
-					sum(df_new$status == "yes") + sum(as.integer(df_new$guest), na.rm = TRUE),
-					df_new %>% 
-						arrange(ts) %>% 
-						tail(1) %>% 
-						unlist() %>% 
-						paste(collapse = " ")
+					Bokat$count,
+					Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " ")
 				)
 			)
 		}
