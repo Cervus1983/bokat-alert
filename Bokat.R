@@ -49,7 +49,7 @@ if (length(args) == 1) {
 				html_nodes("td.TextSmall[align='left'][width='50']") %>% 
 				html_text(trim = TRUE) %>% 
 				as.integer() %>% 
-				sum()
+				sum(na.rm = TRUE)
 	
 		# compare to cached data
 		if (file.exists(paste(event_id, "rds", sep = ".")) && !identical(Bokat, readRDS(paste(event_id, "rds", sep = ".")))) {
