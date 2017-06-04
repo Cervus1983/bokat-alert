@@ -51,8 +51,12 @@ if (length(args) == 1) {
 				as.integer() %>% 
 				sum(na.rm = TRUE)
 	
-		# compare to cached data
-		if (file.exists(paste(event_id, "rds", sep = ".")) && !identical(Bokat, readRDS(paste(event_id, "rds", sep = ".")))) {
+		# check if my answer is "Yes!" & compare to cached data
+		if (
+			Bokat$tbl %>% filter(name == "Mikhail Zhilkin", status == "Yes!") %>% nrow() > 0 &&
+			file.exists(paste(event_id, "rds", sep = ".")) && 
+			!identical(Bokat, readRDS(paste(event_id, "rds", sep = ".")))
+		) {
 			# if differs
 			topic <- readRDS("topic.rds")
 			
