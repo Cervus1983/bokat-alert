@@ -66,7 +66,7 @@ if (length(args) == 2) {
 					Bokat$count,
 					Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " "),
 					rep(
-						paste("http://www.bokat.se/stat.jsp?userId=41368194059144&eventId=", event_id, sep = "="),
+						paste("http://www.bokat.se/stat.jsp?userId=41368194059144&eventId", event_id, sep = "="),
 						args[2] == "mail"
 					)
 				)
