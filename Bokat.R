@@ -6,10 +6,11 @@ options(stringsAsFactors = FALSE)
 
 args = commandArgs(trailingOnly = TRUE)
 
-if (length(args) == 1) {
-	# try & fetch Bokat page
+if (length(args) == 2) {
 	event_id <- args[1]
+	method <- args[2]
 	
+	# try & fetch Bokat page
 	html <- tryCatch(
 		read_html(paste("http://www.bokat.se/statPrint.jsp?changeLang=1&eventId", event_id, sep = "=")),
 		error = function(e) e
@@ -58,14 +59,16 @@ if (length(args) == 1) {
 			!identical(Bokat, readRDS(paste(event_id, "rds", sep = ".")))
 		) {
 			# if differs
-			topic <- readRDS("topic.rds")
-			
 			aws.sns::publish(
-				topic = topic,
+				topic = readRDS("topic.rds")[[method]],
 				message = sprintf(
-					"[%s] %s",
+					"[%s] %s %s",
 					Bokat$count,
-					Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " ")
+					Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " "),
+					rep(
+						paste("http://www.bokat.se/stat.jsp?userId=41368194059144&eventId=", event_id, sep = "="),
+						args[2] == "mail"
+					)
 				)
 			)
 		}
