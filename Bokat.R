@@ -62,12 +62,13 @@ if (length(args) == 2) {
 			aws.sns::publish(
 				topic = readRDS("topic.rds")[[method]],
 				message = sprintf(
-					"[%s] %s %s",
+					"[%s] %s%s",
 					Bokat$count,
 					Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " "),
-					rep(
-						paste("http://www.bokat.se/stat.jsp?userId=41368194059144&eventId", event_id, sep = "="),
-						args[2] == "mail"
+					ifelse(
+						args[2] == "mail",
+						paste(" http://www.bokat.se/stat.jsp?userId=41368194059144&eventId", event_id, sep = "="),
+						""
 					)
 				)
 			)
