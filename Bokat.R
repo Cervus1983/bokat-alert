@@ -59,21 +59,23 @@ if (length(args) == 2) {
 			!identical(Bokat, readRDS(paste(event_id, "rds", sep = ".")))
 		) {
 			# if differs
-			aws.sns::publish(
-				topic = readRDS("topic.rds")[[method]],
-				message = sprintf(
-					"[%s] %s%s",
-					Bokat$count,
-					Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " "),
-					ifelse(
-						args[2] == "mail",
-						paste(" http://www.bokat.se/stat.jsp?userId=41368194059144&eventId", event_id, sep = "="),
-						""
-					)
-				)
+			message <- sprintf(
+				"[%s] %s",
+				Bokat$count,
+				Bokat$tbl %>% arrange(desc(ts)) %>% head(1) %>% unlist() %>% paste(collapse = " ")
+			)
+			
+			if(args[2] == "sms") {
+				source("../nexmo.R")
+				send_text(from = "Bokat", text = message)
+			} else sendmailR::sendmail(
+				from = "cervus1983@gmail.com",
+				to = "cervus1983@gmail.com",
+				subject = message,
+				msg = paste("http://www.bokat.se/stat.jsp?userId=41368194059144&eventId", event_id, sep = "=")
 			)
 		}
-		
+
 		# cache
 		saveRDS(Bokat, file = paste(event_id, "rds", sep = "."))
 	}
